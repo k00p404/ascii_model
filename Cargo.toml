@@ -2,5 +2,6 @@
 members = [
     "ascii_renderer",
     "vtuber_tracker",
+    "vtuber_types", # <--- The new member for shared definitions
 ]
 resolver = "2"
