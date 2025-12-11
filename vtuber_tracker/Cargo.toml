@@ -1,6 +1,7 @@
-[dependencies]
-# Required for video streaming from the camera
-v4l = "0.13" 
+[package]
+name = "vtuber_tracker"
+version = "0.1.0"
+edition = "2021"
 
-# Required for handling raw image data from the camera
-image = "0.25"
+[dependencies]
+v4l = "0.14"
