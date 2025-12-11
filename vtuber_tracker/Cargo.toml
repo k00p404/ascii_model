@@ -1,0 +1,6 @@
+[dependencies]
+# Required for video streaming from the camera
+v4l = "0.13" 
+
+# Required for handling raw image data from the camera
+image = "0.25"

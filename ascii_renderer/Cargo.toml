@@ -1,0 +1,9 @@
+[package]
+name = "ascii_renderer"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+crossterm = "0.29.0"
+glam = "0.30.9"
+gltf = "1.4.1"

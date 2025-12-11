@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "ascii_renderer",
+    "vtuber_tracker",
+]
+resolver = "2"
