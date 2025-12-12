@@ -3,12 +3,16 @@ name = "ascii_renderer"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-# Required for robust cross-platform terminal control (raw mode, cursor movement, color, input handling)
-crossterm = "0.27" 
+# Dependencies for the 3D Engine Core
+nalgebra = "0.32"          # Critical for all 3D math (MVP matrices, rotations)
+gltf = "1.0"               # Required for loading the Vtuber model format
 
-# Absolutely critical for the 3D math required to project the Vtuber model 
-# (vectors, matrices, transformations, and complex math operations)
-nalgebra = "0.32"
+# Dependencies for the Graphical Debugging/Verification (The OpenGL Window)
+winit = "0.28"             # Windowing library
+glutin = "0.30"            # OpenGL context creator
+gl = "0.14"                # Raw OpenGL bindings
+shader_version = "0.7.0"   # <--- CORRECTED: Updated to stable version 
+
+# Dependencies for the Final Output Stage (The ASCII Terminal)
+crossterm = "0.27"

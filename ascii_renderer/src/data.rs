@@ -1,44 +1,38 @@
-use glam::Vec3;
-//3D model representation
-#[derive(Debug, Clone)]
-pub struct Vertex {
-        pub position: Vec3, // 3D coordinates
-        pub normal: Vec3,   // Normal vector
-}
-// Model structure containing vertices from GLTF file
-#[derive(Debug)]
-pub(crate) struct Model {
-        pub vertices: Vec<Vertex>, // List of vertices
+// data.rs
+use std::error::Error;
+
+// A simple placeholder struct for the loaded 3D data
+#[allow(dead_code)] 
+pub struct Model {
+    pub name: String,
+    pub vertices: Vec<(f32, f32, f32)>, // (x, y, z)
+    pub indices: Vec<(usize, usize, usize)>, // Triangles
 }
 
-// Function to load a model from a GLTF file
-pub(crate) fn load_model(path: &str) -> Result<Model, Box<dyn std::error::Error>> {
-        let mut vertices = Vec::new();
+pub fn load_model(path: &str) -> Result<Model, Box<dyn Error>> {
+    // Note: This function will eventually load a GLB file using the gltf crate.
+    // For now, we mock the data for a centered test cube's vertices.
+    
+    // Check if path is valid, even though we use mock data
+    if path.is_empty() {
+        return Err("Model path cannot be empty.".into());
+    }
 
-        //  1. Import the GLTF file
-        let (document, buffers, _) = gltf::import(path)?;
-
-        // 2. Iterate through meshes in the GLTF document
-        for mesh in document.meshes() {
-            for primitive in mesh.primitives() {
-                // Access the reader for the primitive
-                let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
-
-                // 3. Read positions and normals
-                if let (Some(positions), Some(normals)) = (reader.read_positions(), reader.read_normals()) {
-                    for (position, normal) in positions.zip(normals) {
-                        vertices.push(Vertex {
-                            position: glam::Vec3::from(position),
-                            normal: glam::Vec3::from(normal),
-                        });
-                    }
-                } else {
-                    return Err(Box::from("Primitive is missing POSITION or NORMAL attributes.".to_string()));
-                }
-            }
-        }
-        if vertices.is_empty() {
-            return Err(Box::from("No vertices found in the model.".to_string()));
-        }
-        Ok(Model { vertices })
+    // Mock a simple centered cube's vertices (four points for now)
+    let vertices = vec![
+        (0.0, 0.0, 0.0), // Centered test point
+        (-1.0, 1.0, 0.0),
+        (-1.0, -1.0, 0.0),
+        (1.0, -1.0, 0.0),
+    ];
+    let indices = vec![
+        (0, 1, 2), 
+        (0, 2, 3), 
+    ];
+    
+    Ok(Model {
+        name: path.to_string(),
+        vertices,
+        indices,
+    })
 }

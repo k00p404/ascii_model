@@ -1,87 +1,69 @@
+// main.rs
 mod data;
-mod renderer;
-mod terminal;
+mod opengl_render; 
+mod terminal; 
 
-use data::Model;
-use renderer::Renderer;
-use glam::{Vec3, Mat4};
-use glam::Vec4Swizzles;
-use crossterm::ExecutableCommand;
-use std::{thread, time::Duration};
-use std::io::{stdout, Write}; // <-- Imported the Write trait
+use std::error::Error;
+use winit::{
+    event::{Event, WindowEvent},
+    event_loop::{ControlFlow, EventLoop},
+    window::WindowBuilder,
+};
+use nalgebra::{Matrix4, Rotation3, Vector3};
+use glutin::context::PossiblyCurrentContext;
+use glutin::surface::Surface;
+use glutin::prelude::GlSurface; // GlSurface Trait imported for the resize method!
 
-fn main() {
-    // This is the cleanup function that runs if the main loop (run()) fails (e.g., Ctrl+C is pressed).
-    if let Err(e) = run() {
-        // We attempt to show the cursor again, just in case the terminal is left in a bad state.
-        let _ = stdout().execute(crossterm::cursor::Show);
-        eprintln!("Application error: {:?}", e);
-    }
-}
 
-fn run() -> Result<(), Box<dyn std::error::Error>> {
-    // 1. Initial Terminal Setup: Hide the cursor and clear the screen once
-    stdout().execute(crossterm::cursor::Hide)?;
-    stdout().execute(crossterm::terminal::Clear(crossterm::terminal::ClearType::All))?;
+fn main() -> Result<(), Box<dyn Error>> {
+    let event_loop = EventLoop::new(); 
+    
+    let window_builder = WindowBuilder::new()
+        .with_title("3D ASCII Vtuber Debug Window")
+        .with_inner_size(winit::dpi::PhysicalSize::new(800, 600));
 
-    // Get terminal dimensions
-    let (width, height) = crossterm::terminal::size()?;
-
-    // Initialize the renderer
-    let renderer = Renderer::new(width, height);
-
-    // Load the 3D model
+    // 2. Create the OpenGL Context and Surface
+    let (window, surface, context) = opengl_render::init_opengl(window_builder, &event_loop) 
+        .expect("Failed to initialize OpenGL context and surface.");
+    
+    // 3. Load the Model 
     let model = data::load_model("assets/Box.glb")?;
-
-    let mut frame_count = 0.0; // Variable to control continuous rotation
-
-    // --- START ANIMATION LOOP ---
-    loop {
-        // Reset buffers for the new frame
-        let screen_size = (width * height) as usize;
-        let mut depth_buffer = vec![f32::MAX; screen_size];
-        let mut screen_buffer = vec![' '; screen_size];
-
-        // 2. Continuous Model Transformation
-        let rotation_x = frame_count * 0.05;
-        let rotation_y = frame_count * 0.03;
-
-        // Rotation matrix is dynamic, based on frame_count
-        let model_matrix = glam::Mat4::from_rotation_x(rotation_x) * glam::Mat4::from_rotation_y(rotation_y);
-
-        // Iterate through all vertices
-        for vertex in &model.vertices {
-            // 1. Apply the model transformation to the vertex position
-            let world_pos = model_matrix.mul_vec4(vertex.position.extend(1.0)).xyz();
-
-            // 2. Project the 3D world pos to 2D screen coords
-            let projected_pos = renderer.project(world_pos);
-
-            let screen_x = projected_pos.x.round() as usize;
-            let screen_y = projected_pos.y.round() as usize;
-            let depth = projected_pos.z;
-
-            // Ensure coords are within terminal bounds
-            if screen_x < width as usize && screen_y < height as usize {
-                let index = screen_y * width as usize + screen_x;
-
-                // Simple Z-buffer check
-                if depth < depth_buffer[index] {
-                    depth_buffer[index] = depth;
-                    screen_buffer[index] = '#';
+    println!("INFO: 3D Model loaded successfully: {}", model.name);
+    
+    // --- Temporary MVP Setup Variables ---
+    let mut rotation_y: f32 = 0.0;
+    
+    // 4. Main Event Loop
+    event_loop.run(move |event, window_target, control_flow| { 
+        
+        match event {
+            Event::WindowEvent { event, .. } => match event {
+                WindowEvent::CloseRequested => {
+                    *control_flow = ControlFlow::Exit; 
                 }
+                WindowEvent::Resized(size) => {
+                    surface.resize(&context, size.width.try_into().unwrap(), size.height.try_into().unwrap());
+                }
+                _ => (),
+            },
+            
+            Event::RedrawRequested(_) => {
+                rotation_y += 0.01; 
+                
+                // --- MVP Matrix Calculation ---
+                let rotation_matrix = Rotation3::from_axis_angle(&Vector3::y_axis(), rotation_y);
+                let translation_matrix = Matrix4::new_translation(&Vector3::new(0.0, 0.0, -2.0));
+                
+                let model_matrix = translation_matrix * rotation_matrix.to_homogeneous();
+                
+                // 5. OpenGL Rendering and Data Processing
+                opengl_render::render_frame(&context, &surface, model_matrix); 
+                window.request_redraw(); 
             }
+            
+            _ => (),
         }
+    }); // <-- FIX: Removed the question mark here.
 
-        // Output the screen buffer (Dynamic output commands)
-        let output: String = screen_buffer.iter().collect();
-        stdout()
-            .execute(crossterm::cursor::MoveTo(0, 0))? // Move cursor to top-left for redraw
-            .write_all(output.as_bytes())?; // Write the new frame (Requires std::io::Write)
-
-        frame_count += 1.0;
-        thread::sleep(Duration::from_millis(30)); // Delay for ~30 FPS
-    }
-    // --- END ANIMATION LOOP ---
-    // The function never returns Ok(()) because the loop is infinite.
+    Ok(())
 }
